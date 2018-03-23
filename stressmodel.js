@@ -1,6 +1,6 @@
 // Call evaluateLTS with way object that looks like: {id:'id', tags:{'highway': 'residential', 'maxspeed':'40', 'lanes':'2'}}
-// This will return an object {lts:2 message:'line 1\nline 2\n...\nlast line'}
-// where message contains a list of the decisions made to determine the lts level of the specified way.
+// This will return an object {lts:2 message:['line 1','line 2', ...,'last line']}
+// where message contains a list of the decisions made to determine the LTS level of the specified way.
 
 function evaluateLTS (way) {
   const bp = bikingPermitted(way)
@@ -20,7 +20,7 @@ function evaluateLTS (way) {
     return imt.result
   }
 
-  return { lts: 0, message: 'Error: This way does not match any of the analysis criteria.' }
+  return { lts: 0, message: ['Error: This way does not match any of the analysis criteria.'] }
 }
 
 function HasTag (way, tag) {
@@ -57,9 +57,9 @@ function getLanes (way) {
     if (l.indexOf(';') === -1) {
       lanes = parseInt(l)
       if (isNaN(lanes)) {
-        return { 'lanes': defaultLanes, message: 'Error: Unknown \'lanes\' tag: \'' + l + '\'. Assuming default of ' + defaultLanes.toString() + '.' }
+        return { 'lanes': defaultLanes, message: ['Error: Unknown \'lanes\' tag: \'' + l + '\'. Assuming default of ' + defaultLanes.toString() + '.'] }
       } else {
-        return { 'lanes': lanes, message: '' }
+        return { 'lanes': lanes, message: [] }
       }
     } else {
       let list = l.Split(';')
@@ -67,15 +67,15 @@ function getLanes (way) {
       for (let s in list) {
         lanes = parseInt(s)
         if (isNaN(lanes)) {
-          return { 'lanes': defaultLanes, message: 'Error: Unknown \'lanes\' tag in split value: \'' + l + '\'. Assuming default of ' + defaultLanes.toString() + '.' }
+          return { 'lanes': defaultLanes, message: ['Error: Unknown \'lanes\' tag in split value: \'' + l + '\'. Assuming default of ' + defaultLanes.toString() + '.'] }
         } else {
           ltot += lanes
         }
       }
-      return { 'lanes': ltot, message: 'Split \'lanes\' tag. Using total of all elements.' }
+      return { 'lanes': ltot, message: ['Split \'lanes\' tag. Using total of all elements.'] }
     }
   } else {
-    return { 'lanes': defaultLanes, message: 'No \'lanes\' tag. Assuming default of ' + defaultLanes.toString() + '.' }
+    return { 'lanes': defaultLanes, message: ['No \'lanes\' tag. Assuming default of ' + defaultLanes.toString() + '.'] }
   }
 }
 
@@ -84,41 +84,41 @@ function getMaxSpeed (way) {
   if (HasTag(way, 'maxspeed')) {
     const maxspeed = way.tags['maxspeed']
     if (maxspeed === 'national') {
-      return { maxspeed: 40, message: 'Error: Unknown \'maxspeed\' tag value \'national\'. Assuming a value of \'40\'.' }
+      return { maxspeed: 40, message: ['Error: Unknown \'maxspeed\' tag value \'national\'. Assuming a value of \'40\'.'] }
     } else {
       result = parseInt(maxspeed)
       if (isNaN(result)) {
-        return { maxspeed: 50, message: 'Error: Unknown \'maxspeed\' tag value \'' + maxspeed + '\'. Assuming a value of \'40\'.' }
+        return { maxspeed: 50, message: ['Error: Unknown \'maxspeed\' tag value \'' + maxspeed + '\'. Assuming a value of \'40\'.'] }
       } else {
-        return { maxspeed: maxspeed, message: '' }
+        return { maxspeed: maxspeed, message: [] }
       }
     }
   } else {
     if (HasTagValue(way, 'highway', 'motorway')) {
-      return { maxspeed: 100, message: 'No maxspeed tag. Using default value of 100 when highway=motorway.' }
+      return { maxspeed: 100, message: ['No maxspeed tag. Using default value of 100 when highway=motorway.'] }
     } else if (HasTagValue(way, 'highway', 'primary') || HasTagValue(way, 'highway', 'secondary')) {
-      return { maxspeed: 80, message: 'No maxspeed tag. Using default value of 80 when highway=\'' + way.tags['highway'] + '\'.' }
+      return { maxspeed: 80, message: ['No maxspeed tag. Using default value of 80 when highway=\'' + way.tags['highway'] + '\'.'] }
     } else {
-      return { maxspeed: 50, message: 'No maxspeed tag. Using default value of 50 when highway=\'' + way.tags['highway'] + '\'.' }
+      return { maxspeed: 50, message: ['No maxspeed tag. Using default value of 50 when highway=\'' + way.tags['highway'] + '\'.'] }
     }
   }
 }
 
 function parkingPresent (way) {
   if (HasTagValue(way, 'parking', 'yes')) {
-    return { parking: true, message: '' }
+    return { parking: true, message: ['Found tag \'parking\'=\'yes\'. Parking is present.'] }
   }
   if (TagStartsWith(way, 'parking:')) {
     for (let tag in way.tags) {
       if (tag.startsWith('parking:lane:')) {
         const v = way.tags[tag]
         if (v === 'parallel' || v === 'perpendicular' || v === 'diagonal' || v === 'yes' || v === 'marked') {
-          return { parking: true, message: 'Found tag \'' + tag + '\'=\'' + v + '\'. Parking is present.' }
+          return { parking: true, message: ['Found tag \'' + tag + '\'=\'' + v + '\'. Parking is present.'] }
         }
       }
     }
   }
-  return { parking: false, message: 'Parking is not present.' }
+  return { parking: false, message: ['Parking is not present.'] }
 }
 
 function hasSeparatingMedian (way) {
@@ -143,44 +143,44 @@ function bikeAndParkingWidth (way) {
 function bikingPermitted (way) {
   if (HasTag(way, 'highway') || HasTag(way, 'bicycle')) {
     if (HasTagValue(way, 'bicycle', 'no')) {
-      return { permitted: false, result: { lts: 0, message: 'Cycling not permitted due to bicycle=\'no\' tag.' } }
+      return { permitted: false, result: { lts: 0, message: ['Cycling not permitted due to bicycle=\'no\' tag.'] } }
     }
     if (HasTagValue(way, 'highway', 'motorway') || HasTagValue(way, 'highway', 'motorway_link')) {
-      return { permitted: false, result: { lts: 0, message: 'Cycling not permitted due to highway=\'' + way.tags['highway'] + '\' tag.' } }
+      return { permitted: false, result: { lts: 0, message: ['Cycling not permitted due to highway=\'' + way.tags['highway'] + '\' tag.'] } }
     }
     if (HasTagValue(way, 'footway', 'sidewalk')) {
       if (!HasTagValue(way, 'bicycle', 'yes')) {
         if (HasTagValue(way, 'highway', 'footway') || HasTagValue(way, 'highway', 'path')) {
-          return { permitted: false, result: { lts: 0, message: 'Cycling not permitted. When footway=\'sidewalk\' is present, there must be a bicycle=\'yes\' when the highway is \'footway\' or \'path\'.' } }
+          return { permitted: false, result: { lts: 0, message: ['Cycling not permitted. When footway=\'sidewalk\' is present, there must be a bicycle=\'yes\' when the highway is \'footway\' or \'path\'.'] } }
         }
       }
     }
   } else {
-    return { permitted: false, result: { lts: 0, message: 'Missing highway tag. The way is not a highway.' } }
+    return { permitted: false, result: { lts: 0, message: ['Missing highway tag. The way is not a highway.'] } }
   }
 
-  return { permitted: true, message: '' }
+  return { permitted: true, message: [] }
 }
 
 function isSeparatedPath (way) {
   let analyze = false
-  let message = ''
+  let message = []
   if (HasTagValue(way, 'highway', 'path') || HasTagValue(way, 'highway', 'footway') || HasTagValue(way, 'highway', 'cycleway')) {
     analyze = true
-    message = 'This way is a separated path because highway=\'' + way.tags['highway'] + '\'.'
+    message.push('This way is a separated path because highway=\'' + way.tags['highway'] + '\'.')
   } else if (HasTagValue(way, 'highway', 'construction')) {
     if (HasTagValue(way, 'construction', 'path') || HasTagValue(way, 'construction', 'footway') || HasTagValue(way, 'construction', 'cycleway')) {
       analyze = true
-      message = 'This way is a separated path because highway=\'' + way.tags['highway'] + '\' and construction=\'' + way.tags['construction'] + '\'.'
+      message.push('This way is a separated path because highway=\'' + way.tags['highway'] + '\' and construction=\'' + way.tags['construction'] + '\'.')
     }
   } else if (TagStartsWithValue(way, 'cycleway', 'track') || TagStartsWithValue(way, 'cycleway', 'opposite_track')) {
     // FIXME: This doesn't seem to be covered by the Ottawa OSM guide. E.g. Laurier.
     analyze = true
-    message = 'This way is a separated path because there is a cycleway defined as \'track\' or \'opposite_track\'.'
+    message.push('This way is a separated path because there is a cycleway defined as \'track\' or \'opposite_track\'.')
   }
   if (analyze) {
-    message += '\nSeparated Tracks are always LTS=1.'
-    return { isSeparatedPath: true, result: { lts: 1, message: cleanMessage(message) } }
+    message.push('Separated Tracks are always LTS=1.')
+    return { isSeparatedPath: true, result: { lts: 1, message: message } }
   }
 
   return { isSeparatedPath: false }
@@ -195,57 +195,57 @@ function bikeLaneAnalysisParkingPresent (way, message) {
   const gl = getLanes(way)
   const lanes = gl.lanes
   if (gl.message.length > 0) {
-    message += '\n' + gl.message
+    message.push(gl.message)
   }
 
   const gm = getMaxSpeed(way)
   const maxspeed = gm.maxspeed
   if (gm.message.length > 0) {
-    message += '\n' + gm.message
+    message.push(gm.message)
   }
 
   if (lanes >= 3) {
     if (lts < 3) {
-      message += '\nIncreasing LTS to 3 because there are 3 or more lanes and parking present.'
+      message.push('Increasing LTS to 3 because there are 3 or more lanes and parking present.')
       lts = 3
     }
   }
 
   if (width <= 4.1) {
     if (lts < 3) {
-      message += '\nIncreasing LTS to 3 because the bike lane width is less than 4.1m and parking present.'
+      message.push('Increasing LTS to 3 because the bike lane width is less than 4.1m and parking present.')
       lts = 3
     }
   } else if (width <= 4.25) {
     if (lts < 2) {
-      message += '\nIncreasing LTS to 2 because the bike lane width is less than 4.25m and parking present.'
+      message.push('Increasing LTS to 2 because the bike lane width is less than 4.25m and parking present.')
       lts = 2
     }
   } else if (width < 4.5 && (maxspeed < 40 || isResidential)) {
     if (lts < 1) {
-      message += '\nIncreasing LTS to 1 because the bike lane width is less than 4.5m. maxspeed is less than 40 on a residential street and parking present.'
+      message.push('Increasing LTS to 1 because the bike lane width is less than 4.5m. maxspeed is less than 40 on a residential street and parking present.')
       lts = 1
     }
   }
 
   if (maxspeed <= 40) {
     if (lts < 1) {
-      message += '\nIncreasing LTS to 1 because the maxspeed is up to 40 km/h and parking present.'
+      message.push('Increasing LTS to 1 because the maxspeed is up to 40 km/h and parking present.')
       lts = 1
     }
   } else if (maxspeed <= 50) {
     if (lts < 2) {
-      message += '\nIncreasing LTS to 2 because the maxspeed is between 41-50 km/h and parking present.'
+      message.push('Increasing LTS to 2 because the maxspeed is between 41-50 km/h and parking present.')
       lts = 2
     }
   } else if (maxspeed < 65) {
     if (lts < 3) {
-      message += '\nIncreasing LTS to 3 because the maxspeed is between 51-55 km/h and parking present.'
+      message.push('Increasing LTS to 3 because the maxspeed is between 51-55 km/h and parking present.')
       lts = 3
     }
   } else {
     if (lts < 4) {
-      message += '\nIncreasing LTS to 4 because the maxspeed is over 55 km/h and parking present.'
+      message.push('Increasing LTS to 4 because the maxspeed is over 55 km/h and parking present.')
       lts = 4
     }
   }
@@ -260,30 +260,30 @@ function bikeLaneAnalysisNoParking (way, message) {
   const gl = getLanes(way)
   const lanes = gl.lanes
   if (gl.message.length > 0) {
-    message += '\n' + gl.message
+    message.push(gl.message)
   }
 
   const gm = getMaxSpeed(way)
   const maxspeed = gm.maxspeed
   if (gm.message.length > 0) {
-    message += '\n' + gm.message
+    message.push(gm.message)
   }
 
   if (lanes === 3 && hasSeparatingMedian(way)) {
     if (lts < 2) {
-      message += '\nIncreasing LTS to 2 because there are 3 lanes with a separating median and no parking.'
+      message.push('Increasing LTS to 2 because there are 3 lanes with a separating median and no parking.')
       lts = 2
     }
   } else if (lanes >= 3) {
     if (lts < 3) {
-      message += '\nIncreasing LTS to 3 because there are 3 or more lanes and no parking.'
+      message.push('Increasing LTS to 3 because there are 3 or more lanes and no parking.')
       lts = 3
     }
   }
 
   if (width <= 1.7) {
     if (lts < 2) {
-      message += '\nIncreasing LTS to 2 because the bike lane width is less than 1.7 metres and no parking.'
+      message.push('Increasing LTS to 2 because the bike lane width is less than 1.7 metres and no parking.')
       lts = 2
     }
   }
@@ -291,29 +291,24 @@ function bikeLaneAnalysisNoParking (way, message) {
   if (maxspeed > 50) {
     if (maxspeed < 65) {
       if (lts < 3) {
-        message += '\nIncreasing LTS to 3 because the maxspeed is between 51-64 km/h and no parking.'
+        message.push('Increasing LTS to 3 because the maxspeed is between 51-64 km/h and no parking.')
         lts = 3
       }
     } else {
       if (lts < 4) {
-        message += '\nIncreasing LTS to 4 because the maxspeed is over 65 km/h and no parking.'
+        message.push('Increasing LTS to 4 because the maxspeed is over 65 km/h and no parking.')
         lts = 4
       }
     }
   }
 
-  return { lts: lts, message: cleanMessage(message) }
-}
-
-function cleanMessage (message) {
-  if (message.startsWith('\n')) return message.substring(1)
-  return message
+  return { lts: lts, message: message }
 }
 
 function isBikeLane (way) {
   let result
   let analyze = false
-  let message = ''
+  let message = []
   if (TagStartsWithValue(way, 'cycleway', 'crossing') ||
     TagStartsWithValue(way, 'cycleway', 'lane') ||
     TagStartsWithValue(way, 'cycleway', 'left') ||
@@ -325,18 +320,17 @@ function isBikeLane (way) {
     analyze = true
     for (let t in way.tags) {
       if (t.startsWith('cycleway')) {
-        if (message.length > 0) message += '\n'
-        message = 'Way is a bike lane because \'' + t + '\'=\'' + way.tags[t] + '\'.'
+        message.push('Way is a bike lane because \'' + t + '\'=\'' + way.tags[t] + '\'.')
       }
     }
   }
   if (HasTagValue(way, 'shoulder:access:bicycle', 'yes')) {
     analyze = true
-    message = 'Way is a bike lane because shoulder:access:bicycle=\'' + way.tags['shoulder:access:bicycle'] + '\'.'
+    message.push('Way is a bike lane because shoulder:access:bicycle=\'' + way.tags['shoulder:access:bicycle'] + '\'.')
   }
   if (analyze) {
     const pp = parkingPresent(way)
-    if (pp.message.length > 0) message += '\n' + pp.message
+    if (pp.message.length > 0) message.push(pp.message)
     if (pp.parking) {
       result = bikeLaneAnalysisParkingPresent(way, message)
       return { isBikeLane: true, result: result }
@@ -350,53 +344,53 @@ function isBikeLane (way) {
 }
 
 function isMixedTraffic (way) {
-  let message = 'Does not meet criteria for Separated Path or Bike Lane.\nTreating as Mixed Traffic.'
+  let message = ['Does not meet criteria for Separated Path or Bike Lane. Treating as Mixed Traffic.']
 
   const isResidential = HasTagValue(way, 'highway', 'residential')
 
   const gl = getLanes(way)
   const lanes = gl.lanes
   if (gl.message.length > 0) {
-    message += '\n' + gl.message
+    message.push(gl.message)
   }
 
   const gm = getMaxSpeed(way)
   let maxspeed = gm.maxspeed
   if (gm.message.length > 0) {
-    message += '\n' + gm.message
+    message.push(gm.message)
   }
 
   if (maxspeed <= 40) {
     if (HasTagValue(way, 'service', 'parking_aisle') || HasTagValue(way, 'service', 'driveway')) {
-      message += '\nSetting LTS to 2 because maxspeed is 50 km/h or less and service is \'parking_aisle\' or \'driveway\'.'
+      message.push('Setting LTS to 2 because maxspeed is 50 km/h or less and service is \'parking_aisle\' or \'driveway\'.')
       return { isMixedTraffic: true, result: { lts: 2, message: message } }
     } else if (lanes <= 3) {
-      message += '\nSetting LTS to 2 because maxspeed is up to 40 km/h and 3 or fewer lanes.'
+      message.push('Setting LTS to 2 because maxspeed is up to 40 km/h and 3 or fewer lanes.')
       return { isMixedTraffic: true, result: { lts: 2, message: message } }
     } else if (lanes <= 5) {
-      message += '\nSetting LTS to 3 because maxspeed is up to 40 km/h and 5 or fewer lanes.'
+      message.push('Setting LTS to 3 because maxspeed is up to 40 km/h and 5 or fewer lanes.')
       return { isMixedTraffic: true, result: { lts: 3, message: message } }
     } else {
-      message += '\nSetting LTS to 4 because the number of lanes is greater than 5.'
+      message.push('Setting LTS to 4 because the number of lanes is greater than 5.')
       return { isMixedTraffic: true, result: { lts: 3, message: message } }
     }
   } else if (maxspeed <= 50) {
     if (HasTagValue(way, 'service', 'parking_aisle') || HasTagValue(way, 'service', 'driveway')) {
-      message += '\nSetting LTS to 2 because maxspeed is up to 50 km/h and service is \'parking_aisle\' or \'driveway\'.'
+      message.push('Setting LTS to 2 because maxspeed is up to 50 km/h and service is \'parking_aisle\' or \'driveway\'.')
       return { isMixedTraffic: true, result: { lts: 2, message: message } }
     } else if (lanes < 3 && isResidential) {
-      message += '\nSetting LTS to 2 because maxspeed is up to 50 km/h and lanes are fewer than 3 and highway=\'residential\'.'
+      message.push('Setting LTS to 2 because maxspeed is up to 50 km/h and lanes are fewer than 3 and highway=\'residential\'.')
       return { isMixedTraffic: true, result: { lts: 2, message: message } }
     } else if (lanes <= 3) {
-      message += '\nSetting LTS to 3 because maxspeed is up to 50 km/h and lanes are fewer than 3.'
+      message.push('Setting LTS to 3 because maxspeed is up to 50 km/h and lanes are fewer than 3.')
       return { isMixedTraffic: true, result: { lts: 3, message: message } }
     } else {
-      message += '\nSetting LTS to 3 because maxspeed is up to 50 km/h and lanes are fewer than 3.'
+      message.push('Setting LTS to 3 because maxspeed is up to 50 km/h and lanes are fewer than 3.')
       return { isMixedTraffic: true, result: { lts: 3, message: message } }
     }
   } else {
-    message += '\nSetting LTS to 4 because maxspeed is greater than 50 km/h.'
-    return { isMixedTraffic: true, result: { lts: 4, message: cleanMessage(message) } }
+    message.push('Setting LTS to 4 because maxspeed is greater than 50 km/h.')
+    return { isMixedTraffic: true, result: { lts: 4, message: message } }
   }
 }
 
@@ -405,7 +399,7 @@ function RunTest (lts, way) {
   const res = evaluateLTS(way)
   const message = res.message
   if (res.lts !== lts) {
-    const ex = 'Test ' + way.id + ' failed:\n' + message
+    const ex = 'Test ' + way.id + ' failed:\n' + message.join('\n')
     throw ex
   }
 }
