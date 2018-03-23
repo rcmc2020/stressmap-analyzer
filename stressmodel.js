@@ -3,19 +3,19 @@
 // where message contains a list of the decisions made to determine the lts level of the specified way.
 
 function evaluateLTS (way) {
-  var bp = bikingPermitted(way)
+  const bp = bikingPermitted(way)
   if (!bp.permitted) {
     return bp.result
   }
-  var isp = isSeparatedPath(way)
+  const isp = isSeparatedPath(way)
   if (isp.isSeparatedPath) {
     return isp.result
   }
-  var ibl = isBikeLane(way)
+  const ibl = isBikeLane(way)
   if (ibl.isBikeLane) {
     return ibl.result
   }
-  var imt = isMixedTraffic(way)
+  const imt = isMixedTraffic(way)
   if (imt.isMixedTraffic) {
     return imt.result
   }
@@ -28,13 +28,13 @@ function HasTag (way, tag) {
 }
 
 function HasTagValue (way, tag, tagvalue) {
-  var x = way.tags[tag]
+  let x = way.tags[tag]
   if (typeof x === 'undefined') return false
   return x === tagvalue
 }
 
 function TagStartsWith (way, tag) {
-  for (var t in way.tags) {
+  for (let t in way.tags) {
     if (t.startsWith(tag)) return true
   }
   return false
@@ -206,46 +206,46 @@ function bikeLaneAnalysisParkingPresent (way, message) {
 
   if (lanes >= 3) {
     if (lts < 3) {
-      message += '\nIncreasing LTS to 3 because there are 3 or more lanes.'
+      message += '\nIncreasing LTS to 3 because there are 3 or more lanes and parking present.'
       lts = 3
     }
   }
 
   if (width <= 4.1) {
     if (lts < 3) {
-      message += '\nIncreasing LTS to 3 because the bike lane width is less than 4.1m.'
+      message += '\nIncreasing LTS to 3 because the bike lane width is less than 4.1m and parking present.'
       lts = 3
     }
   } else if (width <= 4.25) {
     if (lts < 2) {
-      message += '\nIncreasing LTS to 2 because the bike lane width is less than 4.25m.'
+      message += '\nIncreasing LTS to 2 because the bike lane width is less than 4.25m and parking present.'
       lts = 2
     }
   } else if (width < 4.5 && (maxspeed < 40 || isResidential)) {
     if (lts < 1) {
-      message += '\nIncreasing LTS to 1 because the bike lane width is less than 4.5m. maxspeed is less than 40 on a residential street.'
+      message += '\nIncreasing LTS to 1 because the bike lane width is less than 4.5m. maxspeed is less than 40 on a residential street and parking present.'
       lts = 1
     }
   }
 
   if (maxspeed <= 40) {
     if (lts < 1) {
-      message += '\nIncreasing LTS to 1 because the maxspeed is up to 40 km/h.'
+      message += '\nIncreasing LTS to 1 because the maxspeed is up to 40 km/h and parking present.'
       lts = 1
     }
   } else if (maxspeed <= 50) {
     if (lts < 2) {
-      message += '\nIncreasing LTS to 2 because the maxspeed is between 41-50 km/h.'
+      message += '\nIncreasing LTS to 2 because the maxspeed is between 41-50 km/h and parking present.'
       lts = 2
     }
   } else if (maxspeed < 65) {
     if (lts < 3) {
-      message += '\nIncreasing LTS to 3 because the maxspeed is between 51-55 km/h.'
+      message += '\nIncreasing LTS to 3 because the maxspeed is between 51-55 km/h and parking present.'
       lts = 3
     }
   } else {
     if (lts < 4) {
-      message += '\nIncreasing LTS to 4 because the maxspeed is over 55 km/h.'
+      message += '\nIncreasing LTS to 4 because the maxspeed is over 55 km/h and parking present.'
       lts = 4
     }
   }
@@ -271,19 +271,19 @@ function bikeLaneAnalysisNoParking (way, message) {
 
   if (lanes === 3 && hasSeparatingMedian(way)) {
     if (lts < 2) {
-      message += '\nIncreasing LTS to 2 because there are 3 lanes with a separating median.'
+      message += '\nIncreasing LTS to 2 because there are 3 lanes with a separating median and no parking.'
       lts = 2
     }
   } else if (lanes >= 3) {
     if (lts < 3) {
-      message += '\nIncreasing LTS to 3 because there are 3 or more lanes.'
+      message += '\nIncreasing LTS to 3 because there are 3 or more lanes and no parking.'
       lts = 3
     }
   }
 
   if (width <= 1.7) {
     if (lts < 2) {
-      message += '\nIncreasing LTS to 2 because the bike lane width is less than 1.7 metres.'
+      message += '\nIncreasing LTS to 2 because the bike lane width is less than 1.7 metres and no parking.'
       lts = 2
     }
   }
@@ -291,12 +291,12 @@ function bikeLaneAnalysisNoParking (way, message) {
   if (maxspeed > 50) {
     if (maxspeed < 65) {
       if (lts < 3) {
-        message += '\nIncreasing LTS to 3 because the maxspeed is between 51-64 km/h.'
+        message += '\nIncreasing LTS to 3 because the maxspeed is between 51-64 km/h and no parking.'
         lts = 3
       }
     } else {
       if (lts < 4) {
-        message += '\nIncreasing LTS to 4 because the maxspeed is over 65 km/h.'
+        message += '\nIncreasing LTS to 4 because the maxspeed is over 65 km/h and no parking.'
         lts = 4
       }
     }
@@ -336,6 +336,7 @@ function isBikeLane (way) {
   }
   if (analyze) {
     var pp = parkingPresent(way)
+    if (pp.message.length > 0) message += '\n' + pp.message
     if (pp.parking) {
       result = bikeLaneAnalysisParkingPresent(way, message)
       return { isBikeLane: true, result: result }
@@ -350,7 +351,7 @@ function isBikeLane (way) {
 
 function isMixedTraffic (way) {
   var lanes
-  var message = ''
+  var message = 'Does not meet criteria for Separated Path or Bike Lane.\nTreating as Mixed Traffic.'
 
   var isResidential = HasTagValue(way, 'highway', 'residential')
 
@@ -367,34 +368,43 @@ function isMixedTraffic (way) {
   }
 
   if (maxspeed <= 40) {
-    if (lanes <= 3) {
+    if (HasTagValue(way, 'service', 'parking_aisle') || HasTagValue(way, 'service', 'driveway')) {
+      message += '\nSetting LTS to 2 because maxspeed is 50 km/h or less and service is \'parking_aisle\' or \'driveway\'.'
+      return { isMixedTraffic: true, result: { lts: 2, message: message } }
+    } else if (lanes <= 3) {
       message += '\nSetting LTS to 2 because maxspeed is up to 40 km/h and 3 or fewer lanes.'
-      return { isMixedTraffic: true, result: { lts: 2, message: cleanMessage(message) } }
+      return { isMixedTraffic: true, result: { lts: 2, message: message } }
     } else if (lanes <= 5) {
       message += '\nSetting LTS to 3 because maxspeed is up to 40 km/h and 5 or fewer lanes.'
-      return { isMixedTraffic: true, result: { lts: 3, message: cleanMessage(message) } }
+      return { isMixedTraffic: true, result: { lts: 3, message: message } }
+    } else {
+      message += '\nSetting LTS to 4 because the number of lanes is greater than 5.'
+      return { isMixedTraffic: true, result: { lts: 3, message: message } }
     }
   } else if (maxspeed <= 50) {
     if (HasTagValue(way, 'service', 'parking_aisle') || HasTagValue(way, 'service', 'driveway')) {
       message += '\nSetting LTS to 2 because maxspeed is up to 50 km/h and service is \'parking_aisle\' or \'driveway\'.'
-      return { isMixedTraffic: true, result: { lts: 2, message: cleanMessage(message) } }
-    }
-    if (lanes < 3 && isResidential) {
+      return { isMixedTraffic: true, result: { lts: 2, message: message } }
+    } else if (lanes < 3 && isResidential) {
       message += '\nSetting LTS to 2 because maxspeed is up to 50 km/h and lanes are fewer than 3 and highway=\'residential\'.'
-      return { isMixedTraffic: true, result: { lts: 2, message: cleanMessage(message) } }
+      return { isMixedTraffic: true, result: { lts: 2, message: message } }
     } else if (lanes <= 3) {
       message += '\nSetting LTS to 3 because maxspeed is up to 50 km/h and lanes are fewer than 3.'
-      return { isMixedTraffic: true, result: { lts: 3, message: cleanMessage(message) } }
+      return { isMixedTraffic: true, result: { lts: 3, message: message } }
+    } else {
+      message += '\nSetting LTS to 3 because maxspeed is up to 50 km/h and lanes are fewer than 3.'
+      return { isMixedTraffic: true, result: { lts: 3, message: message } }
     }
+  } else {
+    message += '\nSetting LTS to 4 because maxspeed is greater than 50 km/h.'
+    return { isMixedTraffic: true, result: { lts: 4, message: cleanMessage(message) } }
   }
-  message += '\nSetting LTS to 4 because maxspeed is greater than 50 km/h.'
-  return { isMixedTraffic: true, result: { lts: 4, message: cleanMessage(message) } }
 }
 
 /*
 function RunTest (lts, way) {
   var res = evaluateLTS(way)
-  var message = res.message
+  let message = res.message
   if (res.lts !== lts) {
     throw { message: 'Test ' + way.id + ' failed.'}
   }
