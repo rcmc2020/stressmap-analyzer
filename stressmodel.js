@@ -41,7 +41,7 @@ function TagStartsWith (way, tag) {
 }
 
 function TagStartsWithValue (way, tag, tagvalue) {
-  for (var t in way.tags) {
+  for (let t in way.tags) {
     if (t.startsWith(tag)) {
       if (way.tags[t] === tagvalue) return true
     }
@@ -50,24 +50,24 @@ function TagStartsWithValue (way, tag, tagvalue) {
 }
 
 function getLanes (way) {
-  var lanes
-  var def = 2
+  let lanes
+  let defaultLanes = 2
   if (HasTag(way, 'lanes')) {
-    var l = way.tags['lanes']
+    let l = way.tags['lanes']
     if (l.indexOf(';') === -1) {
       lanes = parseInt(l)
       if (isNaN(lanes)) {
-        return { 'lanes': def, message: 'Error: Unknown \'lanes\' tag: \'' + l + '\'. Assuming default of ' + def.toString() + '.' }
+        return { 'lanes': defaultLanes, message: 'Error: Unknown \'lanes\' tag: \'' + l + '\'. Assuming default of ' + defaultLanes.toString() + '.' }
       } else {
         return { 'lanes': lanes, message: '' }
       }
     } else {
-      var list = l.Split(';')
-      var ltot = 0
-      for (var s in list) {
+      let list = l.Split(';')
+      let ltot = 0
+      for (let s in list) {
         lanes = parseInt(s)
         if (isNaN(lanes)) {
-          return { 'lanes': def, message: 'Error: Unknown \'lanes\' tag in split value: \'' + l + '\'. Assuming default of ' + def.toString() + '.' }
+          return { 'lanes': defaultLanes, message: 'Error: Unknown \'lanes\' tag in split value: \'' + l + '\'. Assuming default of ' + defaultLanes.toString() + '.' }
         } else {
           ltot += lanes
         }
@@ -75,14 +75,14 @@ function getLanes (way) {
       return { 'lanes': ltot, message: 'Split \'lanes\' tag. Using total of all elements.' }
     }
   } else {
-    return { 'lanes': def, message: 'No \'lanes\' tag: \'' + l + '\'. Assuming default of ' + def.toString() + '.' }
+    return { 'lanes': defaultLanes, message: 'No \'lanes\' tag. Assuming default of ' + defaultLanes.toString() + '.' }
   }
 }
 
 function getMaxSpeed (way) {
-  var result
+  let result
   if (HasTag(way, 'maxspeed')) {
-    var maxspeed = way.tags['maxspeed']
+    const maxspeed = way.tags['maxspeed']
     if (maxspeed === 'national') {
       return { maxspeed: 40, message: 'Error: Unknown \'maxspeed\' tag value \'national\'. Assuming a value of \'40\'.' }
     } else {
@@ -109,9 +109,9 @@ function parkingPresent (way) {
     return { parking: true, message: '' }
   }
   if (TagStartsWith(way, 'parking:')) {
-    for (var tag in way.tags) {
+    for (let tag in way.tags) {
       if (tag.startsWith('parking:lane:')) {
-        var v = way.tags[tag]
+        const v = way.tags[tag]
         if (v === 'parallel' || v === 'perpendicular' || v === 'diagonal' || v === 'yes' || v === 'marked') {
           return { parking: true, message: 'Found tag \'' + tag + '\'=\'' + v + '\'. Parking is present.' }
         }
@@ -163,8 +163,8 @@ function bikingPermitted (way) {
 }
 
 function isSeparatedPath (way) {
-  var analyze = false
-  var message = ''
+  let analyze = false
+  let message = ''
   if (HasTagValue(way, 'highway', 'path') || HasTagValue(way, 'highway', 'footway') || HasTagValue(way, 'highway', 'cycleway')) {
     analyze = true
     message = 'This way is a separated path because highway=\'' + way.tags['highway'] + '\'.'
@@ -187,19 +187,19 @@ function isSeparatedPath (way) {
 }
 
 function bikeLaneAnalysisParkingPresent (way, message) {
-  var lts = bikeLaneBlockageLTS(way)
+  let lts = bikeLaneBlockageLTS(way)
 
-  var isResidential = HasTagValue(way, 'highway', 'residential')
-  var width = bikeAndParkingWidth(way)
+  const isResidential = HasTagValue(way, 'highway', 'residential')
+  const width = bikeAndParkingWidth(way)
 
-  var gl = getLanes(way)
-  var lanes = gl.lanes
+  const gl = getLanes(way)
+  const lanes = gl.lanes
   if (gl.message.length > 0) {
     message += '\n' + gl.message
   }
 
-  var gm = getMaxSpeed(way)
-  var maxspeed = gm.maxspeed
+  const gm = getMaxSpeed(way)
+  const maxspeed = gm.maxspeed
   if (gm.message.length > 0) {
     message += '\n' + gm.message
   }
@@ -254,17 +254,17 @@ function bikeLaneAnalysisParkingPresent (way, message) {
 }
 
 function bikeLaneAnalysisNoParking (way, message) {
-  var lts = bikeLaneBlockageLTS(way)
-  var width = bikeAndParkingWidth(way)
+  let lts = bikeLaneBlockageLTS(way)
+  const width = bikeAndParkingWidth(way)
 
-  var gl = getLanes(way)
-  var lanes = gl.lanes
+  const gl = getLanes(way)
+  const lanes = gl.lanes
   if (gl.message.length > 0) {
     message += '\n' + gl.message
   }
 
-  var gm = getMaxSpeed(way)
-  var maxspeed = gm.maxspeed
+  const gm = getMaxSpeed(way)
+  const maxspeed = gm.maxspeed
   if (gm.message.length > 0) {
     message += '\n' + gm.message
   }
@@ -311,9 +311,9 @@ function cleanMessage (message) {
 }
 
 function isBikeLane (way) {
-  var result
-  var analyze = false
-  var message = ''
+  let result
+  let analyze = false
+  let message = ''
   if (TagStartsWithValue(way, 'cycleway', 'crossing') ||
     TagStartsWithValue(way, 'cycleway', 'lane') ||
     TagStartsWithValue(way, 'cycleway', 'left') ||
@@ -323,7 +323,7 @@ function isBikeLane (way) {
     TagStartsWithValue(way, 'cycleway', 'yes')
   ) {
     analyze = true
-    for (var t in way.tags) {
+    for (let t in way.tags) {
       if (t.startsWith('cycleway')) {
         if (message.length > 0) message += '\n'
         message = 'Way is a bike lane because \'' + t + '\'=\'' + way.tags[t] + '\'.'
@@ -335,7 +335,7 @@ function isBikeLane (way) {
     message = 'Way is a bike lane because shoulder:access:bicycle=\'' + way.tags['shoulder:access:bicycle'] + '\'.'
   }
   if (analyze) {
-    var pp = parkingPresent(way)
+    const pp = parkingPresent(way)
     if (pp.message.length > 0) message += '\n' + pp.message
     if (pp.parking) {
       result = bikeLaneAnalysisParkingPresent(way, message)
@@ -350,19 +350,18 @@ function isBikeLane (way) {
 }
 
 function isMixedTraffic (way) {
-  var lanes
-  var message = 'Does not meet criteria for Separated Path or Bike Lane.\nTreating as Mixed Traffic.'
+  let message = 'Does not meet criteria for Separated Path or Bike Lane.\nTreating as Mixed Traffic.'
 
-  var isResidential = HasTagValue(way, 'highway', 'residential')
+  const isResidential = HasTagValue(way, 'highway', 'residential')
 
-  var gl = getLanes(way)
-  lanes = gl.lanes
+  const gl = getLanes(way)
+  const lanes = gl.lanes
   if (gl.message.length > 0) {
     message += '\n' + gl.message
   }
 
-  var gm = getMaxSpeed(way)
-  var maxspeed = gm.maxspeed
+  const gm = getMaxSpeed(way)
+  let maxspeed = gm.maxspeed
   if (gm.message.length > 0) {
     message += '\n' + gm.message
   }
@@ -403,10 +402,11 @@ function isMixedTraffic (way) {
 
 /*
 function RunTest (lts, way) {
-  var res = evaluateLTS(way)
-  let message = res.message
+  const res = evaluateLTS(way)
+  const message = res.message
   if (res.lts !== lts) {
-    throw { message: 'Test ' + way.id + ' failed.'}
+    const ex = 'Test ' + way.id + ' failed:\n' + message
+    throw ex
   }
 }
 
