@@ -125,13 +125,6 @@ function hasSeparatingMedian (way) {
   return false
 }
 
-function bikeLaneBlockageLTS (way) {
-  // FIXME: This should return 1 if rare or 3 if frequent. It may
-  // only apply in commercial areas. See Mineta Documentation.
-  // This is a placeholder until such time as we can model this component.
-  return 1
-}
-
 function bikeAndParkingWidth (way) {
   // FIXME: This is the sum of bike and parking lane width. It includes
   // marked buffer and paved gutter. We currently can't count it so we
@@ -187,8 +180,6 @@ function isSeparatedPath (way) {
 }
 
 function bikeLaneAnalysisParkingPresent (way, message) {
-  let lts = bikeLaneBlockageLTS(way)
-
   const isResidential = HasTagValue(way, 'highway', 'residential')
   const width = bikeAndParkingWidth(way)
 
@@ -204,6 +195,7 @@ function bikeLaneAnalysisParkingPresent (way, message) {
     message.push(gm.message)
   }
 
+  let lts = 1
   if (lanes >= 3) {
     if (lts < 3) {
       message.push('Increasing LTS to 3 because there are 3 or more lanes and parking present.')
@@ -222,31 +214,34 @@ function bikeLaneAnalysisParkingPresent (way, message) {
       lts = 2
     }
   } else if (width < 4.5 && (maxspeed < 40 || isResidential)) {
-    if (lts < 1) {
-      message.push('Increasing LTS to 1 because the bike lane width is less than 4.5m. maxspeed is less than 40 on a residential street and parking present.')
-      lts = 1
+    if (lts < 2) {
+      message.push('Increasing LTS to 2 because the bike lane width is less than 4.5m. maxspeed is less than 40 on a residential street and parking present.')
+      lts = 2
     }
   }
 
-  if (maxspeed <= 40) {
-    if (lts < 1) {
-      message.push('Increasing LTS to 1 because the maxspeed is up to 40 km/h and parking present.')
-      lts = 1
+  if (maxspeed > 40) {
+    if (maxspeed <= 50) {
+      if (lts < 2) {
+        message.push('Increasing LTS to 2 because the maxspeed is between 41-50 km/h and parking present.')
+        lts = 2
+      }
+    } else if (maxspeed < 65) {
+      if (lts < 3) {
+        message.push('Increasing LTS to 3 because the maxspeed is between 51-54 km/h and parking present.')
+        lts = 3
+      }
+    } else {
+      if (lts < 4) {
+        message.push('Increasing LTS to 4 because the maxspeed is over 55 km/h and parking present.')
+        lts = 4
+      }
     }
-  } else if (maxspeed <= 50) {
-    if (lts < 2) {
-      message.push('Increasing LTS to 2 because the maxspeed is between 41-50 km/h and parking present.')
-      lts = 2
-    }
-  } else if (maxspeed < 65) {
+  }
+  if (!isResidential) {
     if (lts < 3) {
-      message.push('Increasing LTS to 3 because the maxspeed is between 51-55 km/h and parking present.')
+      message.push('Increasing LTS to 3 because highway is not \'residential\'.')
       lts = 3
-    }
-  } else {
-    if (lts < 4) {
-      message.push('Increasing LTS to 4 because the maxspeed is over 55 km/h and parking present.')
-      lts = 4
     }
   }
 
@@ -254,7 +249,7 @@ function bikeLaneAnalysisParkingPresent (way, message) {
 }
 
 function bikeLaneAnalysisNoParking (way, message) {
-  let lts = bikeLaneBlockageLTS(way)
+  const isResidential = HasTagValue(way, 'highway', 'residential')
   const width = bikeAndParkingWidth(way)
 
   const gl = getLanes(way)
@@ -269,6 +264,7 @@ function bikeLaneAnalysisNoParking (way, message) {
     message.push(gm.message)
   }
 
+  let lts = 1
   if (lanes === 3 && hasSeparatingMedian(way)) {
     if (lts < 2) {
       message.push('Increasing LTS to 2 because there are 3 lanes with a separating median and no parking.')
@@ -287,7 +283,6 @@ function bikeLaneAnalysisNoParking (way, message) {
       lts = 2
     }
   }
-
   if (maxspeed > 50) {
     if (maxspeed < 65) {
       if (lts < 3) {
@@ -299,6 +294,12 @@ function bikeLaneAnalysisNoParking (way, message) {
         message.push('Increasing LTS to 4 because the maxspeed is over 65 km/h and no parking.')
         lts = 4
       }
+    }
+  }
+  if (!isResidential) {
+    if (lts < 3) {
+      message.push('Increasing LTS to 3 because highway with bike lane is not \'residential\'.')
+      lts = 3
     }
   }
 
@@ -360,33 +361,45 @@ function isMixedTraffic (way) {
     message.push(gm.message)
   }
 
-  if (maxspeed <= 40) {
-    if (HasTagValue(way, 'service', 'parking_aisle') || HasTagValue(way, 'service', 'driveway')) {
-      message.push('Setting LTS to 2 because maxspeed is 50 km/h or less and service is \'parking_aisle\' or \'driveway\'.')
+  if (HasTagValue(way, 'highway', 'steps')) {
+    message.push('Setting LTS to 1 because highway=\'steps\'.')
+    return { isMixedTraffic: true, result: { lts: 1, message: message } }
+  }
+  if (HasTagValue(way, 'highway', 'service') && HasTagValue(way, 'service', 'alley')) {
+    message.push('Setting LTS to 2 because highway=\'service\' and service=\'alley\'.')
+    return { isMixedTraffic: true, result: { lts: 2, message: message } }
+  }
+  if (maxspeed <= 50) {
+    if (HasTagValue(way, 'service', 'parking_aisle')) {
+      message.push('Setting LTS to 2 because maxspeed is 50 km/h or less and service is \'parking_aisle\'.')
       return { isMixedTraffic: true, result: { lts: 2, message: message } }
-    } else if (lanes <= 3) {
-      message.push('Setting LTS to 2 because maxspeed is up to 40 km/h and 3 or fewer lanes.')
-      return { isMixedTraffic: true, result: { lts: 2, message: message } }
-    } else if (lanes <= 5) {
-      message.push('Setting LTS to 3 because maxspeed is up to 40 km/h and 5 or fewer lanes.')
-      return { isMixedTraffic: true, result: { lts: 3, message: message } }
-    } else {
-      message.push('Setting LTS to 4 because the number of lanes is greater than 5.')
-      return { isMixedTraffic: true, result: { lts: 3, message: message } }
     }
-  } else if (maxspeed <= 50) {
-    if (HasTagValue(way, 'service', 'parking_aisle') || HasTagValue(way, 'service', 'driveway')) {
-      message.push('Setting LTS to 2 because maxspeed is up to 50 km/h and service is \'parking_aisle\' or \'driveway\'.')
+    if (HasTagValue(way, 'service', 'driveway')) {
+      message.push('Setting LTS to 2 because maxspeed is 50 km/h or less and service is \'driveway\'.')
       return { isMixedTraffic: true, result: { lts: 2, message: message } }
-    } else if (lanes < 3 && isResidential) {
-      message.push('Setting LTS to 2 because maxspeed is up to 50 km/h and lanes are fewer than 3 and highway=\'residential\'.')
-      return { isMixedTraffic: true, result: { lts: 2, message: message } }
-    } else if (lanes <= 3) {
-      message.push('Setting LTS to 3 because maxspeed is up to 50 km/h and lanes are fewer than 3.')
-      return { isMixedTraffic: true, result: { lts: 3, message: message } }
+    }
+    if (maxspeed <= 40) {
+      if (lanes <= 3) {
+        message.push('Setting LTS to 2 because maxspeed is up to 40 km/h and 3 or fewer lanes.')
+        return { isMixedTraffic: true, result: { lts: 2, message: message } }
+      } else if (lanes <= 5) {
+        message.push('Setting LTS to 3 because maxspeed is up to 40 km/h and 4 or 5 lanes.')
+        return { isMixedTraffic: true, result: { lts: 3, message: message } }
+      } else {
+        message.push('Setting LTS to 4 because the number of lanes is greater than 5.')
+        return { isMixedTraffic: true, result: { lts: 4, message: message } }
+      }
     } else {
-      message.push('Setting LTS to 3 because maxspeed is up to 50 km/h and lanes are fewer than 3.')
-      return { isMixedTraffic: true, result: { lts: 3, message: message } }
+      if (lanes < 3 && isResidential) {
+        message.push('Setting LTS to 2 because maxspeed is up to 50 km/h and lanes are 2 or less and highway=\'residential\'.')
+        return { isMixedTraffic: true, result: { lts: 2, message: message } }
+      } else if (lanes <= 3) {
+        message.push('Setting LTS to 3 because maxspeed is up to 50 km/h and lanes are 3 or less.')
+        return { isMixedTraffic: true, result: { lts: 3, message: message } }
+      } else {
+        message.push('Setting LTS to 4 because the number of lanes is greater than 3.')
+        return { isMixedTraffic: true, result: { lts: 4, message: message } }
+      }
     }
   } else {
     message.push('Setting LTS to 4 because maxspeed is greater than 50 km/h.')
@@ -394,7 +407,7 @@ function isMixedTraffic (way) {
   }
 }
 
-/*
+
 function RunTest (lts, way) {
   const res = evaluateLTS(way)
   const message = res.message
@@ -421,27 +434,29 @@ RunTest(1, { id: 'sp5', tags: { 'highway': 'construction', 'construction': 'foot
 RunTest(1, { id: 'sp6', tags: { 'highway': 'construction', 'construction': 'cycleway' } })
 RunTest(1, { id: 'sp7', tags: { 'highway': 'residential', 'cycleway': 'track', 'maxspeed': '40' } })
 RunTest(1, { id: 'sp8', tags: { 'highway': 'residential', 'cycleway': 'opposite_track', 'maxspeed': '80' } })
-RunTest(1, { id: 'b1', tags: { 'highway': 'primary', 'cycleway': 'crossing', 'maxspeed': '30', 'lanes': '1' } })
-RunTest(1, { id: 'b2', tags: { 'highway': 'primary', 'cycleway': 'lane', 'maxspeed': '30', 'lanes': '1' } })
+RunTest(1, { id: 'b1', tags: { 'highway': 'residential', 'cycleway': 'crossing', 'maxspeed': '30', 'lanes': '1' } })
+RunTest(1, { id: 'b2', tags: { 'highway': 'residential', 'cycleway': 'lane', 'maxspeed': '30', 'lanes': '1' } })
 RunTest(1, { id: 'b3', tags: { 'highway': 'residential', 'cycleway': 'left', 'lanes': '2' } })
-RunTest(3, { id: 'b4', tags: { 'highway': 'primary', 'cycleway': 'opposite', 'maxspeed': '60', 'lanes': '1' } })
-RunTest(4, { id: 'b5', tags: { 'highway': 'primary', 'cycleway': 'opposite_lane', 'maxspeed': '80', 'lanes': '1' } })
-RunTest(1, { id: 'b6', tags: { 'highway': 'primary', 'cycleway': 'right', 'maxspeed': '50', 'lanes': '2' } })
-RunTest(1, { id: 'b7', tags: { 'highway': 'primary', 'cycleway': 'yes', 'maxspeed': '50', 'lanes': '2' } })
-RunTest(1, { id: 'b8', tags: { 'highway': 'primary', 'shoulder:access:bicycle': 'yes', 'maxspeed': '50', 'lanes': '2' } })
-RunTest(1, { id: 'b9', tags: { 'highway': 'primary', 'cycleway:left': 'crossing', 'maxspeed': '30', 'lanes': '1', 'parking': 'yes' } })
-RunTest(1, { id: 'b10', tags: { 'highway': 'primary', 'cycleway:middle': 'lane', 'maxspeed': '30', 'lanes': '1', 'parking': 'yes' } })
+RunTest(3, { id: 'b4', tags: { 'highway': 'residential', 'cycleway': 'opposite', 'maxspeed': '60', 'lanes': '1' } })
+RunTest(4, { id: 'b5', tags: { 'highway': 'residential', 'cycleway': 'opposite_lane', 'maxspeed': '80', 'lanes': '1' } })
+RunTest(1, { id: 'b6', tags: { 'highway': 'residential', 'cycleway': 'right', 'maxspeed': '50', 'lanes': '2' } })
+RunTest(1, { id: 'b7', tags: { 'highway': 'residential', 'cycleway': 'yes', 'maxspeed': '50', 'lanes': '2' } })
+RunTest(1, { id: 'b8', tags: { 'highway': 'residential', 'shoulder:access:bicycle': 'yes', 'maxspeed': '50', 'lanes': '2' } })
+RunTest(1, { id: 'b9', tags: { 'highway': 'residential', 'cycleway:left': 'crossing', 'maxspeed': '30', 'lanes': '1', 'parking': 'yes' } })
+RunTest(1, { id: 'b10', tags: { 'highway': 'residential', 'cycleway:middle': 'lane', 'maxspeed': '30', 'lanes': '1', 'parking': 'yes' } })
 RunTest(2, { id: 'b11', tags: { 'highway': 'residential', 'cycleway': 'left', 'lanes': '2', 'parking': 'yes' } })
-RunTest(3, { id: 'b12', tags: { 'highway': 'primary', 'cycleway': 'opposite', 'maxspeed': '60', 'lanes': '1', 'parking': 'yes' } })
-RunTest(4, { id: 'b13', tags: { 'highway': 'primary', 'cycleway': 'opposite_lane', 'maxspeed': '80', 'lanes': '1', 'parking': 'yes' } })
-RunTest(1, { id: 'b14', tags: { 'highway': 'primary', 'cycleway': 'right', 'maxspeed': '40', 'lanes': '1', 'parking': 'yes' } })
-RunTest(2, { id: 'b15', tags: { 'highway': 'primary', 'cycleway:both': 'yes', 'maxspeed': '41', 'lanes': '1', 'parking': 'yes' } })
-RunTest(2, { id: 'b16', tags: { 'highway': 'primary', 'cycleway:both': 'yes', 'maxspeed': '50', 'lanes': '1', 'parking': 'yes' } })
-RunTest(3, { id: 'b17', tags: { 'highway': 'primary', 'shoulder:access:bicycle': 'yes', 'maxspeed': '51', 'lanes': '1', 'parking': 'yes' } })
-RunTest(3, { id: 'b18', tags: { 'highway': 'primary', 'shoulder:access:bicycle': 'yes', 'maxspeed': '55', 'lanes': '1', 'parking': 'yes' } })
-RunTest(3, { id: 'b19', tags: { 'highway': 'primary', 'cycleway:both': 'yes', 'maxspeed': '56', 'lanes': '1', 'parking': 'yes' } })
-RunTest(3, { id: 'b20', tags: { 'highway': 'primary', 'cycleway:both': 'yes', 'maxspeed': '64', 'lanes': '1', 'parking': 'yes' } })
-RunTest(4, { id: 'b21', tags: { 'highway': 'primary', 'cycleway:both': 'yes', 'maxspeed': '65', 'lanes': '1', 'parking': 'yes' } })
+RunTest(3, { id: 'b12', tags: { 'highway': 'residential', 'cycleway': 'opposite', 'maxspeed': '60', 'lanes': '1', 'parking': 'yes' } })
+RunTest(4, { id: 'b13', tags: { 'highway': 'residential', 'cycleway': 'opposite_lane', 'maxspeed': '80', 'lanes': '1', 'parking': 'yes' } })
+RunTest(1, { id: 'b14', tags: { 'highway': 'residential', 'cycleway': 'right', 'maxspeed': '40', 'lanes': '1', 'parking': 'yes' } })
+RunTest(2, { id: 'b15', tags: { 'highway': 'residential', 'cycleway:both': 'yes', 'maxspeed': '41', 'lanes': '1', 'parking': 'yes' } })
+RunTest(2, { id: 'b16', tags: { 'highway': 'residential', 'cycleway:both': 'yes', 'maxspeed': '50', 'lanes': '1', 'parking': 'yes' } })
+RunTest(3, { id: 'b17', tags: { 'highway': 'residential', 'shoulder:access:bicycle': 'yes', 'maxspeed': '51', 'lanes': '1', 'parking': 'yes' } })
+RunTest(3, { id: 'b18', tags: { 'highway': 'residential', 'shoulder:access:bicycle': 'yes', 'maxspeed': '55', 'lanes': '1', 'parking': 'yes' } })
+RunTest(3, { id: 'b19', tags: { 'highway': 'residential', 'cycleway:both': 'yes', 'maxspeed': '56', 'lanes': '1', 'parking': 'yes' } })
+RunTest(3, { id: 'b20', tags: { 'highway': 'residential', 'cycleway:both': 'yes', 'maxspeed': '64', 'lanes': '1', 'parking': 'yes' } })
+RunTest(4, { id: 'b21', tags: { 'highway': 'residential', 'cycleway:both': 'yes', 'maxspeed': '65', 'lanes': '1', 'parking': 'yes' } })
+RunTest(3, { id: 'b22', tags: { 'highway': 'tertiary', 'cycleway:both': 'yes', 'maxspeed': '40', 'lanes': '2', 'parking': 'yes' } })
+RunTest(3, { id: 'b23', tags: { 'highway': 'tertiary', 'cycleway:both': 'yes', 'maxspeed': '40', 'lanes': '2' } })
 RunTest(2, { id: 'm1', tags: { 'highway': 'residential', 'lanes': '2', 'maxspeed': '30' } })
 RunTest(3, { id: 'm2', tags: { 'highway': 'residential', 'lanes': '4', 'maxspeed': '30' } })
 RunTest(2, { id: 'm3', tags: { 'highway': 'residential', 'lanes': '2', 'maxspeed': '50', 'service': 'parking_aisle' } })
@@ -454,4 +469,6 @@ RunTest(4, { id: 'm9', tags: { 'lanes': '2', 'highway': 'secondary', 'cycleway':
 RunTest(4, { id: 'm10', tags: { 'lanes': '2', 'highway': 'secondary', 'shoulder:access:bicycle': 'yes' } })
 RunTest(4, { id: 'm11', tags: { 'highway': 'secondary', 'lanes': '2' } })
 RunTest(4, { id: 'm12', tags: { 'highway': 'residential', 'maxspeed': '60' } })
-*/
+RunTest(2, { id: 'm13', tags: { 'highway': 'service', 'service': 'alley' } })
+RunTest(1, { id: 'm14', tags: { 'highway': 'steps', 'maxspeed': '80' } })
+
