@@ -166,10 +166,14 @@ function isSeparatedPath (way) {
       analyze = true
       message.push('This way is a separated path because highway=\'' + way.tags['highway'] + '\' and construction=\'' + way.tags['construction'] + '\'.')
     }
-  } else if (TagStartsWithValue(way, 'cycleway', 'track') || TagStartsWithValue(way, 'cycleway', 'opposite_track')) {
+  } else if (TagStartsWithValue(way, 'cycleway', 'track')) {
     // FIXME: This doesn't seem to be covered by the Ottawa OSM guide. E.g. Laurier.
     analyze = true
-    message.push('This way is a separated path because there is a cycleway defined as \'track\' or \'opposite_track\'.')
+    message.push('This way is a separated path because the cycleway is defined as \'track\'.')
+ 
+  } else if (TagStartsWithValue(way, 'cycleway', 'opposite_track')) {
+    analyze = true
+    message.push('This way is a separated path because the cycleway is defined as \'opposite_track\'.')
   }
   if (analyze) {
     message.push('Separated Tracks are always LTS=1.')
@@ -321,13 +325,13 @@ function isBikeLane (way) {
     analyze = true
     for (let t in way.tags) {
       if (t.startsWith('cycleway')) {
-        message.push('Way is a bike lane because \'' + t + '\'=\'' + way.tags[t] + '\'.')
+        message.push('Way has a bike lane because \'' + t + '\'=\'' + way.tags[t] + '\'.')
       }
     }
   }
   if (HasTagValue(way, 'shoulder:access:bicycle', 'yes')) {
     analyze = true
-    message.push('Way is a bike lane because shoulder:access:bicycle=\'' + way.tags['shoulder:access:bicycle'] + '\'.')
+    message.push('Way has a bike lane because shoulder:access:bicycle=\'' + way.tags['shoulder:access:bicycle'] + '\'.')
   }
   if (analyze) {
     const pp = parkingPresent(way)
