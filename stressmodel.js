@@ -407,7 +407,7 @@ function isMixedTraffic (way) {
   }
 }
 
-
+/*
 function RunTest (lts, way) {
   const res = evaluateLTS(way)
   const message = res.message
@@ -471,4 +471,4 @@ RunTest(4, { id: 'm11', tags: { 'highway': 'secondary', 'lanes': '2' } })
 RunTest(4, { id: 'm12', tags: { 'highway': 'residential', 'maxspeed': '60' } })
 RunTest(2, { id: 'm13', tags: { 'highway': 'service', 'service': 'alley' } })
 RunTest(1, { id: 'm14', tags: { 'highway': 'steps', 'maxspeed': '80' } })
-
+*/
