@@ -413,3 +413,7 @@
   }
 
 })(typeof exports === 'undefined'? this['stressmodel']={}: exports);
+
+function evaluateLTS(way) {
+  return stressmodel.evaluateLTS(way)
+}
