@@ -1,0 +1,23 @@
+{
+  "name": "stressmap-analyzer",
+  "version": "1.0.0",
+  "description": "Open Street Map Cycling Stress Analyzer",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rcmc2020/stressmap-analyzer.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rcmc2020/stressmap-analyzer/issues"
+  },
+  "homepage": "https://github.com/rcmc2020/stressmap-analyzer#readme",
+  "dependencies": {
+    "xml2object": "^0.1.2"
+  }
+}

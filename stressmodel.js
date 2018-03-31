@@ -1,5 +1,5 @@
-(function(exports){
-
+'use strict';
+(function (exports) {
   // Call evaluateLTS with way object that looks like: {id:'id', tags:{'highway': 'residential', 'maxspeed':'40', 'lanes':'2'}}
   // This will return an object {lts:2 message:['line 1','line 2', ...,'last line']}
   // where message contains a list of the decisions made to determine the LTS level of the specified way.
@@ -23,6 +23,15 @@
 
     return { lts: 0, message: ['Error: This way does not match any of the analysis criteria.'] }
   }
+
+  exports.isBikingPermitted = function (way) {
+    return bikingPermitted(way).permitted
+  }
+
+  exports.name = 'default'
+  exports.description = 'Standard daylight model. This model looks at roads as a single unit and does not take travel direction or intersection approaches into account.'
+  exports.version = '1.0.0'
+  exports.levels = 4
 
   function HasTag (way, tag) {
     return (typeof way.tags[tag] !== 'undefined')
@@ -171,7 +180,6 @@
       // FIXME: This doesn't seem to be covered by the Ottawa OSM guide. E.g. Laurier.
       analyze = true
       message.push('This way is a separated path because the cycleway is defined as \'track\'.')
-  
     } else if (TagStartsWithValue(way, 'cycleway', 'opposite_track')) {
       analyze = true
       message.push('This way is a separated path because the cycleway is defined as \'opposite_track\'.')
@@ -249,6 +257,9 @@
         lts = 3
       }
     }
+    if (lts === 1) {
+      message.push('LTS is 1 because there is parking present, the maxspeed is less than or equal to 40, highway=\'residential\', and there are 2 lanes or less.')
+    }
 
     return { lts: lts, message: message }
   }
@@ -303,9 +314,12 @@
     }
     if (!isResidential) {
       if (lts < 3) {
-        message.push('Increasing LTS to 3 because highway with bike lane is not \'residential\'.')
+        message.push('Increasing LTS to 3 because highway with bike lane is not \'residential\' and no parking.')
         lts = 3
       }
+    }
+    if (lts === 1) {
+      message.push('LTS is 1 because there is no parking, maxspeed is less than or equal to 50, highway=\'residential\', and there are 2 lanes or less.')
     }
 
     return { lts: lts, message: message }
@@ -384,14 +398,17 @@
         return { isMixedTraffic: true, result: { lts: 2, message: message } }
       }
       if (maxspeed <= 40) {
-        if (lanes <= 3) {
-          message.push('Setting LTS to 2 because maxspeed is up to 40 km/h and 3 or fewer lanes.')
+        if (lanes <= 3 /* && isResidential */) {
+          message.push('Setting LTS to 2 because maxspeed is up to 40 km/h, 3 or fewer lanes and highway=\'residential\'.')
           return { isMixedTraffic: true, result: { lts: 2, message: message } }
+        } else if (lanes <= 3) {
+          message.push('Setting LTS to 3 because maxspeed is up to 40 km/h and 3 or fewer lanes on non-residential highway.')
+          return { isMixedTraffic: true, result: { lts: 3, message: message } }
         } else if (lanes <= 5) {
           message.push('Setting LTS to 3 because maxspeed is up to 40 km/h and 4 or 5 lanes.')
           return { isMixedTraffic: true, result: { lts: 3, message: message } }
         } else {
-          message.push('Setting LTS to 4 because the number of lanes is greater than 5.')
+          message.push('Setting LTS to 4 because maxspeed is up to 40 km/h and the number of lanes is greater than 5.')
           return { isMixedTraffic: true, result: { lts: 4, message: message } }
         }
       } else {
@@ -399,7 +416,7 @@
           message.push('Setting LTS to 2 because maxspeed is up to 50 km/h and lanes are 2 or less and highway=\'residential\'.')
           return { isMixedTraffic: true, result: { lts: 2, message: message } }
         } else if (lanes <= 3) {
-          message.push('Setting LTS to 3 because maxspeed is up to 50 km/h and lanes are 3 or less.')
+          message.push('Setting LTS to 3 because maxspeed is up to 50 km/h and lanes are 3 or less on non-residential highway.')
           return { isMixedTraffic: true, result: { lts: 3, message: message } }
         } else {
           message.push('Setting LTS to 4 because the number of lanes is greater than 3.')
@@ -411,8 +428,7 @@
       return { isMixedTraffic: true, result: { lts: 4, message: message } }
     }
   }
-
-})(typeof exports === 'undefined'? this['stressmodel']={}: exports);
+})(typeof exports === 'undefined' ? this['stressmodel'] = {} : exports)
 
 function evaluateLTS(way) {
   return stressmodel.evaluateLTS(way)
