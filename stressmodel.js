@@ -398,7 +398,7 @@
         return { isMixedTraffic: true, result: { lts: 2, message: message } }
       }
       if (maxspeed <= 40) {
-        if (lanes <= 3 /* && isResidential */) {
+        if (lanes <= 3 && isResidential) {
           message.push('Setting LTS to 2 because maxspeed is up to 40 km/h, 3 or fewer lanes and highway=\'residential\'.')
           return { isMixedTraffic: true, result: { lts: 2, message: message } }
         } else if (lanes <= 3) {
