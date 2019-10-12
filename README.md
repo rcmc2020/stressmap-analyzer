@@ -1,5 +1,10 @@
 # Cycling Level of Traffic Stress Analyzer
 
+## Warning ##
+This project is no longer active. All work is now being done in the Bike Ottawa [stressmodel](https://github.com/BikeOttawa/stressmodel) project.  The [Bike Ottawa](https://github.com/BikeOttawa) site contains all the code necessary for running a site like the [Bike Ottawa Maps](https://maps.bikeottawa.ca/) site.
+
+## Old Documentation ##
+
 This is a console application that takes an OSM file and performs an analysis on the streets based on the information stored in their tags. The arguments are as follows:
 
  `stressmap-analyzer -f osmfilename -d outputpath [-p prefix][-v][-z]`
